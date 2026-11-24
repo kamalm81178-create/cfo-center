@@ -1,6 +1,6 @@
 /* CFO Knowledge Center V2 — core: state, packs, router, home, learn, topic */
 const LSK = 'cfo2';
-const DEF = () => ({lang: 'ar', theme: 'auto', fs: 17, prog: {}, srs: {}, qs: {}, notes: [], tn: {}, streak: {n: 0, last: 0}, day: {d: 0, cards: 0, qs: 0, newc: 0}, goal: {cards: 20, newc: 10}, exam: {}, obj: {}, last: '', rate: 0.95, mig: 0});
+const DEF = () => ({lang: 'ar', theme: 'auto', fs: 17, prog: {}, srs: {}, qs: {}, notes: [], tn: {}, streak: {n: 0, last: 0}, day: {d: 0, cards: 0, qs: 0, newc: 0}, goal: {cards: 20, newc: 10}, exam: {}, accent: 'teal', obj: {}, log: {}, fav: {}, mocks: [], last: '', rate: 0.95, mig: 0});
 let S;
 try { S = Object.assign(DEF(), JSON.parse(localStorage.getItem(LSK) || '{}')); } catch (e) { S = DEF(); }
 const A = {};
@@ -16,7 +16,7 @@ const fmt = (n, d = 2) => (isFinite(n) ? Number(n).toLocaleString('en-US', {maxi
 function save() { try { localStorage.setItem(LSK, JSON.stringify(S)); } catch (e) { toast(tr('تعذر الحفظ: التخزين ممتلئ', 'Could not save: storage full')); } }
 function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
 function rollDay() { const t = today(); if (S.day.d !== t) S.day = {d: t, cards: 0, qs: 0, newc: 0}; }
-function touch() { rollDay(); const t = today(); if (S.streak.last !== t) { S.streak.n = (S.streak.last === t - 1) ? S.streak.n + 1 : 1; S.streak.last = t; } }
+function touch() { rollDay(); const t = today(); S.log = S.log || {}; S.log[t] = (S.log[t] || 0) + 1; const ks = Object.keys(S.log); if (ks.length > 60) ks.sort((a, b) => a - b).slice(0, ks.length - 60).forEach(k => delete S.log[k]); if (S.streak.last !== t) { S.streak.n = (S.streak.last === t - 1) ? S.streak.n + 1 : 1; S.streak.last = t; } }
 const streak = () => (S.streak.last >= today() - 1 ? S.streak.n : 0);
 
 /* migrate V1 notes once */
@@ -98,7 +98,7 @@ function weakTopics() {
 function link(id) { const x = IDX.t[id]; return '<a class="li" href="#/topic/' + id + '"><span class="dot s' + (S.prog[id] || 0) + '"></span><div class="grow"><b>' + esc(ttl(x.t)) + '</b><div class="small muted">' + esc(ttl2(x.t)) + '</div></div><span class="small muted">' + esc(ttl(x.track)) + '</span></a>'; }
 
 /* ---------- shell ---------- */
-const NAV = [['home', '⌂', 'الرئيسية', 'Home'], ['learn', '◈', 'المناهج', 'Curriculum'], ['review', '↻', 'المراجعة', 'Review'], ['quiz', '✓', 'الأسئلة', 'Quiz'], ['tools', '▦', 'الحاسبات', 'Calculators'], ['formulas', 'ƒ', 'القوانين', 'Formulas'], ['glossary', 'Aa', 'المصطلحات', 'Glossary'], ['lib', '▤', 'المكتبة والنصائح', 'Library & Advice'], ['notes', '✎', 'ملاحظاتي', 'My Notes'], ['settings', '⚙', 'الإعدادات والبيانات', 'Settings & Data']];
+const NAV = [['home', '⌂', 'الرئيسية', 'Home'], ['learn', '◈', 'المناهج', 'Curriculum'], ['review', '↻', 'المراجعة', 'Review'], ['quiz', '✓', 'الأسئلة', 'Quiz'], ['cma', '🎓', 'خريطة CMA', 'CMA Map'], ['exam', '⏱', 'امتحان تجريبي', 'Mock Exam'], ['fav', '⭐', 'المفضلة', 'Bookmarks'], ['mine', '＋', 'محتواي', 'My Content'], ['tools', '▦', 'الحاسبات', 'Calculators'], ['formulas', 'ƒ', 'القوانين', 'Formulas'], ['glossary', 'Aa', 'المصطلحات', 'Glossary'], ['lib', '▤', 'المكتبة والنصائح', 'Library & Advice'], ['notes', '✎', 'ملاحظاتي', 'My Notes'], ['settings', '⚙', 'الإعدادات والبيانات', 'Settings & Data']];
 function shell() {
   const due = dueTotal();
   const bd = due ? '<span class="bd">' + due + '</span>' : '';
@@ -109,9 +109,9 @@ function shell() {
   $('#q').placeholder = tr('ابحث في كل المحتوى...', 'Search all content...');
   $('#langb').textContent = S.lang === 'ar' ? 'EN' : 'ع';
   document.documentElement.lang = S.lang; document.documentElement.dir = S.lang === 'ar' ? 'rtl' : 'ltr';
-  document.documentElement.dataset.theme = S.theme; document.documentElement.style.setProperty('--fs', S.fs + 'px');
+  document.documentElement.dataset.theme = S.theme; document.documentElement.dataset.accent = S.accent || 'teal'; document.documentElement.style.setProperty('--fs', S.fs + 'px');
 }
-function mark(p) { document.querySelectorAll('[data-p]').forEach(b => b.classList.toggle('on', b.dataset.p === p || (p === 'topic' && b.dataset.p === 'learn') || (['tools', 'formulas', 'glossary', 'lib', 'notes', 'settings', 'search'].includes(p) && b.dataset.p === 'more'))); }
+function mark(p) { document.querySelectorAll('[data-p]').forEach(b => b.classList.toggle('on', b.dataset.p === p || (p === 'topic' && b.dataset.p === 'learn') || (['tools', 'formulas', 'glossary', 'lib', 'notes', 'settings', 'search', 'cma', 'exam', 'fav', 'mine'].includes(p) && b.dataset.p === 'more'))); }
 
 /* ---------- router ---------- */
 function route() {
@@ -119,7 +119,7 @@ function route() {
   rollDay(); shell();
   const h = (location.hash || '#/home').slice(2), qi = h.indexOf('?'), path = qi < 0 ? h : h.slice(0, qi), query = qi < 0 ? '' : decodeURIComponent(h.slice(qi + 1).replace(/^q=/, ''));
   const [p, a] = path.split('/');
-  const PG = {home: pHome, learn: () => (a ? pTrack(a) : pLearn()), topic: () => pTopic(a), review: pReview, quiz: pQuiz, tools: () => (a ? pCalc(a) : pTools()), formulas: pForms, glossary: pGloss, lib: pLib, notes: pNotes, settings: pSettings, more: pMore, search: () => pSearch(query)};
+  const PG = {home: pHome, learn: () => (a ? pTrack(a) : pLearn()), topic: () => pTopic(a), review: pReview, quiz: pQuiz, tools: () => (a ? pCalc(a) : pTools()), formulas: pForms, glossary: pGloss, lib: pLib, notes: pNotes, settings: pSettings, more: pMore, search: () => pSearch(query), cma: pCma, exam: pExam, fav: pFav, mine: pMine};
   let html; try { html = (PG[p] || pHome)(); } catch (e) { html = '<div class="card">Error: ' + esc(e.message) + '</div>'; console.error(e); }
   $('#view').innerHTML = html; mark(p); window.scrollTo(0, 0);
   if (p === 'tools' && a) calcRun();
@@ -140,6 +140,7 @@ function pHome() {
     (lastId ? '<button class="btn" onclick="location.hash=\'#/topic/' + lastId + '\'">' + tr('كمّل: ', 'Continue: ') + esc(ttl(IDX.t[lastId].t)) + '</button>' : '') +
     (nxt ? '<button class="btn" onclick="location.hash=\'#/topic/' + nxt + '\'">' + tr('التالي: ', 'Next: ') + esc(ttl(IDX.t[nxt].t)) + '</button>' : '') + '</div></div>' +
     '<div class="grid" style="margin-top:12px"><div class="card stat"><b>' + S.day.cards + '/' + S.goal.cards + '</b><span>' + tr('بطاقات اليوم', 'Cards today') + '</span></div><div class="card stat"><b>' + S.day.qs + '</b><span>' + tr('أسئلة اليوم', 'Questions today') + '</span></div><div class="card stat"><b>' + Object.values(S.prog).filter(v => v === 2).length + '/' + Object.keys(IDX.t).length + '</b><span>' + tr('مواضيع متقنة', 'Topics mastered') + '</span></div></div>' +
+    '<div style="margin-top:12px"><button class="btn" onclick="location.hash=\'#/cma\'">🎓 ' + tr('خريطة CMA', 'CMA map') + '</button> <button class="btn" onclick="location.hash=\'#/exam\'">⏱ ' + tr('امتحان تجريبي', 'Mock exam') + '</button></div><div style="margin-top:12px">' + (typeof actChart === 'function' ? actChart() : '') + '</div>' +
     '<h2>' + tr('مساراتك', 'Your tracks') + '</h2><div class="grid">' + IDX.tracks.map(tk => { const s = trackStats(tk.id); return '<div class="card k" onclick="location.hash=\'#/learn/' + tk.id + '\'"><div class="row sp"><b>' + esc(tk.icon + ' ' + ttl(tk)) + '</b><span class="small muted">' + s.mastered + '/' + s.n + '</span></div><div class="small muted" style="margin:6px 0 10px">' + s.studying + ' ' + tr('قيد الدراسة', 'in progress') + '</div>' + bar(s.pct, 1) + '</div>'; }).join('') + '</div>' +
     (exams ? '<h2>' + tr('عدّاد الامتحانات', 'Exam countdown') + '</h2><div class="grid">' + exams + '</div>' : '') +
     (weak.length ? '<h2>' + tr('مواضيع تحتاج مراجعة', 'Weak topics') + '</h2><div class="card">' + weak.map(link).join('') + '</div>' : '') +
@@ -163,7 +164,7 @@ function pTopic(id) {
   return '<div class="small"><a href="#/learn/' + x.track.id + '">' + esc(ttl(x.track)) + '</a> › ' + esc(ttl(x.part)) + ' › ' + esc(ttl(x.sec)) + (x.sec.w ? ' <span class="tag">' + esc(x.sec.w) + '</span>' : '') + '</div>' +
     '<h1>' + esc(ttl(t)) + '</h1><div class="sub">' + esc(ttl2(t)) + '</div>' +
     '<div class="seg"><button class="' + (st === 0 ? 'on' : '') + '" onclick="A.prog(\'' + id + '\',0)">' + tr('لم يبدأ', 'Not started') + '</button><button class="' + (st === 1 ? 'on' : '') + '" onclick="A.prog(\'' + id + '\',1)">' + tr('قيد الدراسة', 'Studying') + '</button><button class="' + (st === 2 ? 'on' : '') + '" onclick="A.prog(\'' + id + '\',2)">' + tr('متقن', 'Mastered') + '</button></div>' +
-    '<div class="row wrap" style="margin:12px 0"><button class="btn t" onclick="A.listen(\'' + id + '\')">🔊 ' + tr('استمع', 'Listen') + '</button><button class="btn" onclick="A.fs(-1)">A−</button><button class="btn" onclick="A.fs(1)">A+</button>' + (nC ? '<button class="btn" onclick="A.topicCards(\'' + id + '\')">↻ ' + tr('بطاقات الموضوع', 'Topic cards') + ' (' + nC + ')</button>' : '') + (nQ ? '<button class="btn" onclick="A.topicQuiz(\'' + id + '\')">✓ ' + tr('اختبر نفسك', 'Quiz me') + ' (' + nQ + ')</button>' : '') + '</div>' +
+    '<div class="row wrap" style="margin:12px 0"><button class="btn t" onclick="A.listen(\'' + id + '\')">🔊 ' + tr('استمع', 'Listen') + '</button><button class="btn" onclick="A.fav(\'' + id + '\')">' + ((S.fav || {})[id] ? '⭐' : '☆') + '</button><button class="btn" onclick="A.fs(-1)">A−</button><button class="btn" onclick="A.fs(1)">A+</button>' + (nC ? '<button class="btn" onclick="A.topicCards(\'' + id + '\')">↻ ' + tr('بطاقات الموضوع', 'Topic cards') + ' (' + nC + ')</button>' : '') + (nQ ? '<button class="btn" onclick="A.topicQuiz(\'' + id + '\')">✓ ' + tr('اختبر نفسك', 'Quiz me') + ' (' + nQ + ')</button>' : '') + '</div>' +
     ((t.o || []).length ? '<div class="card"><b>🎯 ' + tr('أهداف التعلم', 'Learning objectives') + '</b>' + t.o.map((x, k) => '<label style="display:flex;gap:8px;padding:6px 0;align-items:flex-start"><input type="checkbox" ' + (((S.obj || {})[id] || {})[k] ? 'checked' : '') + ' onchange="A.obj(\'' + id + '\',' + k + ',this.checked)"><span>' + esc(x) + '</span></label>').join('') + '</div>' : '') +
     '<div class="card lesson">' + md(t.l) + '</div>' +
     (t.f.length ? '<h2>' + tr('القوانين', 'Formulas') + '</h2><div class="card">' + t.f.map(f => '<div style="padding:6px 0"><b>' + esc(f[0]) + '</b><div class="formula">' + esc(f[1]) + '</div>' + (f[2] ? '<div class="small muted">' + esc(f[2]) + '</div>' : '') + '</div>').join('') + '</div>' : '') +

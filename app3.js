@@ -78,7 +78,7 @@ A.addNote = () => { const t = $('#nt').value.trim(), x = $('#nx').value.trim(); 
 A.delNote = i => { if (confirm(tr('حذف الملاحظة؟', 'Delete note?'))) { S.notes.splice(i, 1); save(); route(); } };
 
 /* more, search */
-function pMore() { return '<h1>' + tr('المزيد', 'More') + '</h1><div class="card">' + NAV.filter(n => ['tools', 'formulas', 'glossary', 'lib', 'notes', 'settings'].includes(n[0])).map(n => '<a class="li" href="#/' + n[0] + '"><span style="width:26px;text-align:center">' + n[1] + '</span><b>' + tr(n[2], n[3]) + '</b></a>').join('') + '</div>'; }
+function pMore() { return '<h1>' + tr('المزيد', 'More') + '</h1><div class="card">' + NAV.filter(n => ['cma', 'exam', 'fav', 'mine', 'tools', 'formulas', 'glossary', 'lib', 'notes', 'settings'].includes(n[0])).map(n => '<a class="li" href="#/' + n[0] + '"><span style="width:26px;text-align:center">' + n[1] + '</span><b>' + tr(n[2], n[3]) + '</b></a>').join('') + '</div>'; }
 function pSearch(q) {
   const w = q.toLowerCase().split(/\s+/).filter(Boolean); if (!w.length) return '<h1>' + tr('بحث', 'Search') + '</h1>';
   const has = s => w.every(x => s.includes(x)); let h = '<h1>' + tr('نتائج: ', 'Results: ') + esc(q) + '</h1>';
@@ -95,7 +95,7 @@ function pSearch(q) {
 const PACK_TPL = '{\n  "id": "cma-update-1",\n  "ver": "2026.12.1",\n  "name": "CMA 1C Deep Dive",\n  "tracks": [{"id":"cma","parts":[{"id":"cma1","secs":[{"id":"cma1C","topics":[\n    {"id":"c1c9","en":"New topic","ar":"موضوع جديد","l":"## عنوان\\n- نقطة","f":[["Name","A = B + C",""]],"c":[["Q?","A"]],"q":[["Question?",["a","b","c","d"],0,"شرح"]]}\n  ]}]}]}]\n}';
 function pSettings() {
   const ex = k => S.exam[k] || '';
-  return '<h1>' + tr('الإعدادات والبيانات', 'Settings & data') + '</h1>' +
+  return '<h1>' + tr('الإعدادات والبيانات', 'Settings & data') + '</h1>' + (typeof appearanceCard === 'function' ? appearanceCard() : '') +
     '<div class="card"><h3>' + tr('الأهداف اليومية', 'Daily goals') + '</h3><div class="row wrap"><div class="field grow"><label>' + tr('بطاقات/يوم', 'Cards/day') + '</label><input type="number" value="' + S.goal.cards + '" onchange="A.goal(\'cards\',this.value)"></div><div class="field grow"><label>' + tr('بطاقات جديدة/يوم', 'New cards/day') + '</label><input type="number" value="' + S.goal.newc + '" onchange="A.goal(\'newc\',this.value)"></div></div>' +
     '<h3>' + tr('تواريخ الامتحانات', 'Exam dates') + '</h3><div class="row wrap">' + IDX.tracks.filter(t => ['cma', 'cpa', 'cfa'].includes(t.id)).map(t => '<div class="field grow"><label>' + esc(ttl(t)) + '</label><input type="date" value="' + ex(t.id) + '" onchange="A.exam(\'' + t.id + '\',this.value)"></div>').join('') + '</div>' +
     '<h3>' + tr('الصوت', 'Voice') + '</h3><label class="row small"><input type="checkbox" ' + (TTS.auto ? 'checked' : '') + ' onchange="TTS.auto=this.checked"> ' + tr('تابع للموضوع التالي تلقائيًا عند الاستماع', 'Auto-continue to the next topic when listening') + '</label></div>' +
