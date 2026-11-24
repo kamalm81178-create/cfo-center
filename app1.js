@@ -1,6 +1,6 @@
 /* CFO Knowledge Center V2 — core: state, packs, router, home, learn, topic */
 const LSK = 'cfo2';
-const DEF = () => ({lang: 'ar', theme: 'auto', fs: 17, prog: {}, srs: {}, qs: {}, notes: [], tn: {}, streak: {n: 0, last: 0}, day: {d: 0, cards: 0, qs: 0, newc: 0}, goal: {cards: 20, newc: 10}, exam: {}, last: '', rate: 0.95, mig: 0});
+const DEF = () => ({lang: 'ar', theme: 'auto', fs: 17, prog: {}, srs: {}, qs: {}, notes: [], tn: {}, streak: {n: 0, last: 0}, day: {d: 0, cards: 0, qs: 0, newc: 0}, goal: {cards: 20, newc: 10}, exam: {}, obj: {}, last: '', rate: 0.95, mig: 0});
 let S;
 try { S = Object.assign(DEF(), JSON.parse(localStorage.getItem(LSK) || '{}')); } catch (e) { S = DEF(); }
 const A = {};
@@ -85,6 +85,7 @@ function trackStats(tid) {
   ids.forEach(i => { const p = S.prog[i] || 0; if (p === 1) s1++; else if (p === 2) s2++; });
   return {n: ids.length, studying: s1, mastered: s2, pct: ids.length ? Math.round(s2 / ids.length * 100) : 0, touched: ids.length ? Math.round((s1 + s2) / ids.length * 100) : 0};
 }
+function ring(pct, sz, lbl) { sz = sz || 56; const r = sz / 2 - 5, c = 2 * Math.PI * r; return '<svg class="ring" width="' + sz + '" height="' + sz + '" viewBox="0 0 ' + sz + ' ' + sz + '"><circle cx="' + sz / 2 + '" cy="' + sz / 2 + '" r="' + r + '" fill="none" stroke="var(--line,#8883)" stroke-width="5"/><circle cx="' + sz / 2 + '" cy="' + sz / 2 + '" r="' + r + '" fill="none" stroke="var(--teal,#1aa6a0)" stroke-width="5" stroke-linecap="round" stroke-dasharray="' + (c * pct / 100).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 ' + sz / 2 + ' ' + sz / 2 + ')"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-size="' + Math.round(sz / 4) + '" fill="currentColor" font-weight="700">' + (lbl == null ? pct + '%' : lbl) + '</text></svg>'; }
 function bar(pct, g) { return '<div class="bar"><i class="' + (g ? 'g' : '') + '" style="width:' + pct + '%"></i></div>'; }
 function nextTopic(trackId) {
   const lists = trackId ? [IDX.order[trackId] || []] : IDX.tracks.map(t => IDX.order[t.id]);
@@ -152,7 +153,7 @@ function pTrack(id) {
   const tk = IDX.tracks.find(t => t.id === id); if (!tk) return '<div class="card">?</div>';
   const lastSec = S.last && IDX.t[S.last] ? IDX.t[S.last].sec.id : '';
   return '<a href="#/learn">← ' + tr('المناهج', 'Curriculum') + '</a><h1>' + esc(tk.icon + ' ' + ttl(tk)) + '</h1><p class="sub">' + esc(tk.desc) + '</p>' +
-    tk.parts.map(P => '<h2>' + esc(ttl(P)) + '</h2>' + P.secs.map(C => { const d = C.topics.filter(x => S.prog[x.id] === 2).length; return '<details' + (C.id === lastSec ? ' open' : '') + '><summary><div class="row sp"><span>' + esc(ttl(C)) + (C.w ? ' <span class="tag">' + esc(C.w) + '</span>' : '') + '</span><span class="small muted">' + d + '/' + C.topics.length + '</span></div></summary><div class="in">' + C.topics.map(x => link(x.id)).join('') + '</div></details>'; }).join('')).join('');
+    tk.parts.map(P => '<h2>' + esc(ttl(P)) + '</h2>' + P.secs.map(C => { const d = C.topics.filter(x => S.prog[x.id] === 2).length; return '<details' + (C.id === lastSec ? ' open' : '') + '><summary><div class="row sp"><span class="row" style="gap:10px">' + ring(C.topics.length ? Math.round(d / C.topics.length * 100) : 0, 40) + '<span>' + esc(ttl(C)) + (C.w ? ' <span class="tag">' + esc(C.w) + '</span>' : '') + '</span></span><span class="small muted">' + d + '/' + C.topics.length + '</span></div></summary><div class="in">' + C.topics.map(x => link(x.id)).join('') + '</div></details>'; }).join('')).join('');
 }
 function pTopic(id) {
   const x = IDX.t[id]; if (!x) return '<div class="card">?</div>';
@@ -163,12 +164,14 @@ function pTopic(id) {
     '<h1>' + esc(ttl(t)) + '</h1><div class="sub">' + esc(ttl2(t)) + '</div>' +
     '<div class="seg"><button class="' + (st === 0 ? 'on' : '') + '" onclick="A.prog(\'' + id + '\',0)">' + tr('لم يبدأ', 'Not started') + '</button><button class="' + (st === 1 ? 'on' : '') + '" onclick="A.prog(\'' + id + '\',1)">' + tr('قيد الدراسة', 'Studying') + '</button><button class="' + (st === 2 ? 'on' : '') + '" onclick="A.prog(\'' + id + '\',2)">' + tr('متقن', 'Mastered') + '</button></div>' +
     '<div class="row wrap" style="margin:12px 0"><button class="btn t" onclick="A.listen(\'' + id + '\')">🔊 ' + tr('استمع', 'Listen') + '</button><button class="btn" onclick="A.fs(-1)">A−</button><button class="btn" onclick="A.fs(1)">A+</button>' + (nC ? '<button class="btn" onclick="A.topicCards(\'' + id + '\')">↻ ' + tr('بطاقات الموضوع', 'Topic cards') + ' (' + nC + ')</button>' : '') + (nQ ? '<button class="btn" onclick="A.topicQuiz(\'' + id + '\')">✓ ' + tr('اختبر نفسك', 'Quiz me') + ' (' + nQ + ')</button>' : '') + '</div>' +
+    ((t.o || []).length ? '<div class="card"><b>🎯 ' + tr('أهداف التعلم', 'Learning objectives') + '</b>' + t.o.map((x, k) => '<label style="display:flex;gap:8px;padding:6px 0;align-items:flex-start"><input type="checkbox" ' + (((S.obj || {})[id] || {})[k] ? 'checked' : '') + ' onchange="A.obj(\'' + id + '\',' + k + ',this.checked)"><span>' + esc(x) + '</span></label>').join('') + '</div>' : '') +
     '<div class="card lesson">' + md(t.l) + '</div>' +
     (t.f.length ? '<h2>' + tr('القوانين', 'Formulas') + '</h2><div class="card">' + t.f.map(f => '<div style="padding:6px 0"><b>' + esc(f[0]) + '</b><div class="formula">' + esc(f[1]) + '</div>' + (f[2] ? '<div class="small muted">' + esc(f[2]) + '</div>' : '') + '</div>').join('') + '</div>' : '') +
     (nC ? '<h2>' + tr('أسئلة سريعة', 'Quick recall') + '</h2>' + t.c.map(c => '<details><summary>' + esc(c[0]) + '</summary><div class="in"><p>' + esc(c[1]) + '</p></div></details>').join('') : '') +
     '<h2>' + tr('ملاحظاتي على الموضوع', 'My notes on this topic') + '</h2><div class="field"><textarea placeholder="' + tr('طبّقه على شغلك: مثال، رقم، قرار...', 'Apply it to your work: example, number, decision...') + '" oninput="A.tnote(\'' + id + '\',this.value)">' + esc(S.tn[id] || '') + '</textarea></div>' +
     '<div class="row sp" style="margin-top:14px">' + (pv ? '<a class="btn" href="#/topic/' + pv + '">→ ' + tr('السابق', 'Prev') + '</a>' : '<span></span>') + (nx ? '<a class="btn p" href="#/topic/' + nx + '">' + tr('التالي', 'Next') + ' ←</a>' : '') + '</div>';
 }
+A.obj = (id, k, v) => { S.obj = S.obj || {}; (S.obj[id] = S.obj[id] || {})[k] = v ? 1 : 0; save(); };
 A.prog = (id, v) => { S.prog[id] = v; if (v) touch(); save(); route(); };
 A.fs = d => { S.fs = Math.max(13, Math.min(26, S.fs + d * 2)); save(); document.documentElement.style.setProperty('--fs', S.fs + 'px'); };
 let tnT; A.tnote = (id, v) => { S.tn[id] = v; clearTimeout(tnT); tnT = setTimeout(save, 400); };
