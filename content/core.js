@@ -3,4 +3,4 @@
    Lesson mini-markup: "## " heading, "- " bullet, "> " exam tip, "= " formula line, **bold** inline. */
 window.CFO = window.CFO || {packs: []};
 window.CFO.addPack = function (p) { window.CFO.packs.push(p); };
-window.T = function (id, en, ar, l, o) { o = o || {}; return {id: id, en: en, ar: ar, l: l, f: o.f || [], c: o.c || [], q: o.q || []}; };
+window.T = function (id, en, ar, l, o) { o = o || {}; return {id: id, en: en, ar: ar, l: l, f: o.f || [], c: o.c || [], q: o.q || [], o: o.o || []}; };
